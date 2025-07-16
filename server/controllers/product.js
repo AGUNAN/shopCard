@@ -5,10 +5,10 @@ import productModel from "../models/productModel.js";
 //get all products
 export const getProduct = async(req,res)=>{
   try {
-    const getAllProduct = await productModel.find({})
+    const product = await productModel.find({})
     res.status(200).json({
       success:true,
-      getAllProduct
+      product
     })
     
   } catch (error) {
