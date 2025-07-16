@@ -1,94 +1,30 @@
-// index.js
-import express from 'express';
-import pkg from 'pg';
-import dotenv from 'dotenv';
+import express from "express"
+import cors from "cors"
+import dotenv from "dotenv"
+import product  from "./routes/product.js"
+import order from "./routes/order.js"
+import path from 'path';
+import { fileURLToPath } from 'url';
+import connectDB from "./config/db.js"
 
-dotenv.config();
-const { Pool } = pkg;
-const app = express();
-const port = process.env.PORT || 3000;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Connect to PostgreSQL
-const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASS,
-  port: process.env.DB_PORT,
-});
+const app=express()
+dotenv.config({path:path.join(__dirname,"config","config.env")})
 
-app.use(express.json()); // for parsing application/json
+//port setup
+const PORT = process.env.PORT || 5000
 
-// CREATE - Add new user
-app.post('/users', async (req, res) => {
-  const { name } = req.body;
-  try {
-    const result = await pool.query(
-      'INSERT INTO users (name) VALUES ($1) RETURNING *',
-      [name]
-    );
-    res.status(201).json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error creating user' });
-  }
-});
+//middleware
+app.use(express.json())//to get json data
+app.use(cors())//connect with front end
 
-// READ - Get all users
-app.get('/users', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM users');
-    res.json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error fetching users' });
-  }
-});
+//routes
+app.use("/api",product);
+app.use("/api/order",order)
 
-// READ - Get user by ID
-app.get('/users/:id', async (req, res) => {
-  const userId = req.params.id;
-  try {
-    const result = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
-    if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error fetching user' });
-  }
-});
-
-// UPDATE - Update user
-app.put('/users/:id', async (req, res) => {
-  const userId = req.params.id;
-  const { name } = req.body;
-  try {
-    const result = await pool.query(
-      'UPDATE users SET name = $1 WHERE id = $2 RETURNING *',
-      [name, userId]
-    );
-    if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error updating user' });
-  }
-});
-
-// DELETE - Remove user
-app.delete('/users/:id', async (req, res) => {
-  const userId = req.params.id;
-  try {
-    const result = await pool.query('DELETE FROM users WHERE id = $1 RETURNING *', [userId]);
-    if (result.rows.length === 0) return res.status(404).json({ error: 'User not found' });
-    res.json({ message: 'User deleted successfully', user: result.rows[0] });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error deleting user' });
-  }
-});
-
-// Start server
-app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
-});
+app.listen(PORT, (req,res)=>{
+  connectDB()
+  console.log(`server is running at http://localhost:${PORT}`)
+})
